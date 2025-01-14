@@ -3,26 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Services\TransactionService;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
 
-class TransactionController
+readonly class TransactionController
 {
+    public function __construct(public TransactionService $transactionService, public Redirector $redirect)
+    {
+    }
+
     public function index(): View
     {
+        $transactions = $this->transactionService->getAll();
+        $totals       = $this->transactionService->getTotals();
+        $income       = $totals->income;
+        $expense      = $totals->expense;
+
         return view('transactions.index', [
-            'totalIncome'  => 50000,
-            'totalExpense' => 45000,
-            'netSavings'   => 5000,
-            'goal'         => 7500,
+            'totalIncome'  => $income,
+            'totalExpense' => $expense,
+            'netSavings'   => $income - $expense,
+            'goal'         => 0,
+            'transactions' => $transactions,
         ]);
     }
 
-    public function show(int $transactionId, TransactionService $transactionService): string
+    public function edit(int $transactionId): View
     {
-        $transaction = $transactionService->findTransaction($transactionId);
+        $transaction = $this->transactionService->find($transactionId);
 
-        return 'Transaction: ' . $transactionId . ', ' . $transaction['amount'];
+        return view('transactions.edit', [
+            'transactionId' => $transactionId,
+            'date'          => $transaction->transaction_date,
+            'amount'        => $transaction->amount,
+            'description'   => $transaction->description,
+        ]);
+    }
+
+    public function update(int $transactionId, Request $request): RedirectResponse
+    {
+        $amount      = $request->get('amount');
+        $date        = $request->get('date');
+        $description = $request->get('description');
+
+        $this->transactionService->update($transactionId, $amount, new Carbon($date), $description);
+
+        return $this->redirect->to(route('transactions.index'));
+    }
+
+    public function destroy(int $transactionId): RedirectResponse
+    {
+        $this->transactionService->delete($transactionId);
+
+        return $this->redirect->to(route('transactions.index'));
     }
 
     public function create(): View
@@ -30,8 +66,14 @@ class TransactionController
         return view('transactions.create');
     }
 
-    public function store(Request $request): string
+    public function store(Request $request): RedirectResponse
     {
-        return 'Transaction Created';
+        $amount      = $request->get('amount');
+        $date        = $request->get('date');
+        $description = $request->get('description');
+
+        $this->transactionService->create($amount, new Carbon($date), $description);
+
+        return $this->redirect->to(route('transactions.index'));
     }
 }

@@ -10,7 +10,9 @@ Route::get('/', function () {
 Route::prefix('transactions')->name('transactions.')->group(function () {
     Route::get('/', [TransactionController::class, 'index'])->name('index');
     Route::get('/create', [TransactionController::class, 'create'])->name('create');
-    Route::get('/{transactionId}', [TransactionController::class, 'show'])->name('show');
+    Route::get('/{transactionId}/edit', [TransactionController::class, 'edit'])->name('edit');
+    Route::delete('/{transactionId}', [TransactionController::class, 'destroy'])->name('destroy');
+    Route::post('/{transactionId}', [TransactionController::class, 'update'])->name('update');
     Route::post('/', [TransactionController::class, 'store'])->name('store');
 });
 
